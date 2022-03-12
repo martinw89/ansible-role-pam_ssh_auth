@@ -1,0 +1,28 @@
+---
+# tasks file for pam_ssh_agent_auth
+
+
+- name: Install libpam-ssh-agent-auth if it's missing
+  apt:
+    name: libpam-ssh-agent-auth
+    state: present
+
+- name: Copy key and SSH_AUTH_SOCK config
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0440
+  with_items:
+    - src: authorized_keys
+      dest: /etc/ssh/sudo_authorized_keys
+    - src: 020_ssh_auth_sock-export
+      dest: /etc/sudoers.d/020_ssh_auth_sock-export
+
+- name: Add pam_ssh_agent_auth to /etc/pam.d/sudo if it's not there
+  lineinfile:
+    path: /etc/pam.d/sudo
+    regexp: "^auth sufficient pam_ssh_agent_auth.so"
+    insertbefore: "^@include common-auth"
+    line: "auth sufficient pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug"
